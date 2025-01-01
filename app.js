@@ -8,7 +8,7 @@ import User from './models/User.js';
 import testRoute from './routes/test.js';
 import indexRoute from './routes/index.js';
 import messagesRoute from './routes/messages.js';
-import userRoute from './routes/users.js';
+import userRoute from './routes/user.js';
 import mongoStore from 'connect-mongo';
 
 dotenv.config();
