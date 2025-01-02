@@ -41,9 +41,12 @@ passport.use(new GoogleStrategy({
   callbackURL: 'https://back-end-rrmj.onrender.com/auth/google/callback'
 }, async (accessToken, refreshToken, profile, done) => {
   try {
-    const email = profile.emails[0].value;
-    let user = await User.findOne({ email });
+    const email = profile.emails[0]?.value;
+    if (!email) {
+      return done(new Error('No email found in profile'), null);
+    }
 
+    let user = await User.findOne({ email });
     if (!user) {
       user = await User.create({
         username: profile.displayName,
@@ -73,6 +76,7 @@ const db = mongoose.connection;
 db.on('error', (error) => console.error(error));
 db.once('open', () => console.log('Connected to database'));
 
+// Routes
 app.use('/', indexRoute);
 app.use('/test', testRoute);
 app.use('/messages', messagesRoute);
@@ -84,17 +88,44 @@ app.get('/auth/google', (req, res, next) => {
 
   const authOptions = {
     scope: ['profile', 'email'],
-    state: JSON.stringify({ redirectUri }) // Encode redirectUri in state
+    state: JSON.stringify({ redirectUri }), // Encode redirectUri in state
   };
-  
+
   passport.authenticate('google', authOptions)(req, res, next);
 });
 
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => {
-    const user = req.user;
-    const { redirectUri } = JSON.parse(req.query.state); // Retrieve from state
+app.get('/auth/google/callback', (req, res, next) => {
+  passport.authenticate('google', { failureRedirect: '/' }, (err, user) => {
+    if (err) {
+      console.error("Authentication error:", err);
+      return res.status(500).json({ error: "Authentication failed" });
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    let redirectUri = null;
+    try {
+      const state = JSON.parse(req.query.state || '{}');
+      redirectUri = state.redirectUri;
+    } catch (error) {
+      console.error("Error parsing state:", error);
+    }
+
     const fallbackUri = 'exp://localhost:19000';
+    const isValidUrl = (url) => {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (!isValidUrl(redirectUri)) {
+      redirectUri = fallbackUri;
+    }
 
     const userInfo = {
       id: user._id,
@@ -102,10 +133,16 @@ app.get('/auth/google/callback', passport.authenticate('google', { failureRedire
       email: user.email,
     };
 
-    const redirectUrl = `${redirectUri || fallbackUri}?user=${encodeURIComponent(JSON.stringify(userInfo))}`;
+    const redirectUrl = `${redirectUri}?user=${encodeURIComponent(JSON.stringify(userInfo))}`;
     res.redirect(redirectUrl);
-  }
-);
+  })(req, res, next);
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
