@@ -8,6 +8,7 @@ import User from './models/User.js';
 import testRoute from './routes/test.js';
 import indexRoute from './routes/index.js';
 import messagesRoute from './routes/messages.js';
+import favoritesRoute from './routes/favorites.js';
 import userRoute from './routes/user.js';
 import mongoStore from 'connect-mongo';
 
@@ -77,6 +78,7 @@ app.use('/', indexRoute);
 app.use('/test', testRoute);
 app.use('/messages', messagesRoute);
 app.use('/users', userRoute);
+app.use('/favorites', favoritesRoute);
 
 // Google Authentication Routes
 app.get('/auth/google', (req, res, next) => {
