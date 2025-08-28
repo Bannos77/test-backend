@@ -1,14 +1,11 @@
+// models/Favorite.js
 import mongoose from "mongoose";
 
-const favoriteSchema = new mongoose.Schema({
-  userId: {
-    type: String, // or mongoose.Schema.Types.ObjectId if linked to User collection
-    required: true,
-  },
-  itemId: {
-    type: String, // or mongoose.Schema.Types.ObjectId if linked to Item collection
-    required: true,
-  },
+const FavoriteSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  itemId: { type: String, required: true },
 }, { timestamps: true });
 
-export default mongoose.model("Favorite", favoriteSchema);
+const Favorite = mongoose.model("Favorite", FavoriteSchema);
+
+export default Favorite;
